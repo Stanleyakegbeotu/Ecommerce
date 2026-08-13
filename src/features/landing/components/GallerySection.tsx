@@ -28,7 +28,7 @@ const galleryImages: GalleryAsset[] = Object.entries(galleryImageModules)
 
     return {
       src,
-      alt: `King of Ginger gallery image ${index + 1}: ${filename.replace(/_/g, ' ')}`,
+      alt: `Solar Generator gallery image ${index + 1}: ${filename.replace(/_/g, ' ')}`,
     }
   })
 
@@ -62,7 +62,7 @@ function GalleryGrid({ images }: GalleryGridProps) {
             .filter((_, imageIndex) => imageIndex % 2 === columnIndex)
             .map((image) => (
               <GalleryImage
-                className="block h-auto w-full rounded-[18px] object-contain shadow-[0_12px_30px_rgba(0,0,0,0.32)]"
+                className="gallery-depth-card block h-auto w-full rounded-[18px] object-contain shadow-[0_12px_30px_rgba(0,0,0,0.32)]"
                 image={image}
                 key={image.src}
               />
@@ -92,7 +92,7 @@ function GalleryMarquee({ images }: GalleryGridProps) {
                 key={`${image.src}-${index}`}
               >
                 <GalleryImage
-                  className="block h-full w-auto max-w-none rounded-[clamp(24px,2vw,34px)] object-contain shadow-[0_34px_84px_rgba(0,0,0,0.52),0_16px_36px_rgba(245,158,11,0.1)]"
+                  className="gallery-depth-card block h-full w-auto max-w-none rounded-[clamp(24px,2vw,34px)] object-contain shadow-[0_34px_84px_rgba(0,0,0,0.52),0_16px_36px_rgba(245,158,11,0.1)]"
                   image={image}
                 />
               </div>
@@ -129,7 +129,7 @@ export function GallerySection() {
   }
 
   return (
-    <section className="overflow-hidden bg-[#050505]" aria-label="Product gallery" id="gallery">
+    <section className="solar-panel-surface solar-panel-surface--bottom-right overflow-hidden bg-[#050505]" aria-label="Product gallery" id="gallery">
       <GalleryMarquee images={galleryImages} />
       <MasonryGallery images={galleryImages} />
     </section>

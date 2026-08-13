@@ -2,7 +2,7 @@ import { CheckCircle2, Home, PackagePlus } from 'lucide-react'
 
 import { DownloadConfirmationButton } from '@/features/checkout/components/DownloadConfirmationButton'
 import { OrderSummary } from '@/features/checkout/components/OrderSummary'
-import { useCheckoutEngine } from '@/features/checkout/hooks/CheckoutEngine'
+import { useCheckoutEngine } from '@/features/checkout/hooks/useCheckoutEngine'
 
 type SuccessScreenProps = {
   context: 'popup' | 'inline'
@@ -66,7 +66,7 @@ export function SuccessScreen({ context }: SuccessScreenProps) {
         <button
           type="button"
           onClick={resetOrder}
-          className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-linear-to-br from-[#facc15] via-gold-500 to-gold-600 px-5 text-sm font-black uppercase tracking-[0.12em] text-ink-950"
+          className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-linear-to-br from-[#4d96ff] via-gold-500 to-gold-600 px-5 text-sm font-black uppercase tracking-[0.12em] text-white"
         >
           <PackagePlus className="size-4" aria-hidden="true" />
           Place Another Order

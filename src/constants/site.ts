@@ -1,7 +1,7 @@
 export const SITE_CONFIG = {
-  name: 'King of Ginger',
-  productName: '7 Days Ginger Hair Growth Oil',
+  name: 'Solar Generator',
+  productName: 'Solar Generator',
   description:
-    'Premium nutrient solution engineered to deeply penetrate scalp layers, soothe roots, and activate natural follicle volume.',
-  contactHref: 'mailto:hello@kingofginger.example',
+    'Portable solar backup power for your home, shop, and office—without fuel stress or NEPA wahala.',
+  contactHref: 'mailto:hello@solargen.example',
 } as const

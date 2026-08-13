@@ -8,10 +8,11 @@ type PackageSelectorProps = {
   selectedPackageId: string
   onSelect: (packageId: string) => void
   compact?: boolean
+  elevated?: boolean
   className?: string
 }
 
-export function PackageSelector({ packages, selectedPackageId, onSelect, compact = false, className = '' }: PackageSelectorProps) {
+export function PackageSelector({ packages, selectedPackageId, onSelect, compact = false, elevated = false, className = '' }: PackageSelectorProps) {
   return (
     <motion.div className={`grid gap-4 ${className}`} layout>
       {packages.map((productPackage) => (
@@ -21,6 +22,7 @@ export function PackageSelector({ packages, selectedPackageId, onSelect, compact
           onSelect={onSelect}
           productPackage={productPackage}
           selected={productPackage.id === selectedPackageId}
+          elevated={elevated}
         />
       ))}
     </motion.div>

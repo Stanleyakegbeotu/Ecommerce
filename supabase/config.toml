@@ -1,0 +1,41 @@
+[functions.submit-customer-feedback]
+verify_jwt = false
+
+[functions.submit-customer-feedback-followup]
+verify_jwt = false
+
+[functions.submit-customer-feedback-voice]
+verify_jwt = false
+
+[functions.manage-customer-feedback]
+verify_jwt = true
+
+[functions.submit-order]
+verify_jwt = false
+
+[functions.record-analytics-event]
+verify_jwt = false
+
+[functions.get-public-site-settings]
+verify_jwt = false
+
+[functions.manage-admin-data]
+verify_jwt = true
+
+[functions.process-notification-digests]
+verify_jwt = false
+
+[functions.test-notification-email]
+verify_jwt = true
+
+[functions.manage-notification-operations]
+verify_jwt = true
+
+[functions.manage-platform]
+verify_jwt = true
+
+[functions.manage-meta-tracking]
+verify_jwt = true
+
+[functions.process-meta-conversions]
+verify_jwt = false

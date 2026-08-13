@@ -11,7 +11,7 @@ export function ProductCard({ product, compact = false }: ProductCardProps) {
 
   return (
     <article
-      className={`relative flex w-full shrink-0 overflow-hidden border border-mint-400/20 bg-linear-to-br from-earth-950/95 to-[#0f0d0b] ${radiusClass} ${heightClass}`}
+      className={`hero-product-card relative flex w-full shrink-0 overflow-hidden border border-mint-400/20 bg-linear-to-br from-earth-950/95 to-[#0f0d0b] ${radiusClass} ${heightClass}`}
     >
       <img
         src={product.imageSrc}

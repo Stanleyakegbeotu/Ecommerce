@@ -1,26 +1,18 @@
 ﻿import { AnimatePresence, motion } from 'framer-motion'
+import { useInView } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 
 import reviewSectionBg from '@/assets/review-leaves-bg.jpeg'
 
-import reviewImageK1 from '../../../../CUSTOMERS/K1.jpeg'
-import reviewImageK2 from '../../../../CUSTOMERS/K2.jpeg'
-import reviewImageK3 from '../../../../CUSTOMERS/K3.jpeg'
-import reviewImageK4 from '../../../../CUSTOMERS/K4.jpeg'
-import reviewImageK5 from '../../../../CUSTOMERS/K5.jpeg'
-import reviewImage01 from '../../../../CUSTOMERS/WhatsApp Image 2026-07-02 at 3.13.48 PM (1).jpeg'
-import reviewImage02 from '../../../../CUSTOMERS/WhatsApp Image 2026-07-02 at 3.13.51 PM (1).jpeg'
-import reviewImage03 from '../../../../CUSTOMERS/WhatsApp Image 2026-07-02 at 3.13.51 PM (2).jpeg'
-import reviewImage04 from '../../../../CUSTOMERS/WhatsApp Image 2026-07-02 at 3.13.51 PM (3).jpeg'
-import reviewImage05 from '../../../../CUSTOMERS/WhatsApp Image 2026-07-02 at 3.13.51 PM (4).jpeg'
-import reviewImage06 from '../../../../CUSTOMERS/WhatsApp Image 2026-07-02 at 3.13.51 PM.jpeg'
-import reviewImage07 from '../../../../CUSTOMERS/WhatsApp Image 2026-07-02 at 3.13.52 PM (1).jpeg'
-import reviewImage08 from '../../../../CUSTOMERS/WhatsApp Image 2026-07-02 at 3.13.52 PM.jpeg'
-import reviewImage09 from '../../../../CUSTOMERS/WhatsApp Image 2026-07-02 at 3.14.42 PM (1).jpeg'
-import reviewImage11 from '../../../../CUSTOMERS/WhatsApp Image 2026-07-02 at 3.14.43 PM.jpeg'
-import reviewVideo01 from '../../../../CUSTOMERS/WhatsApp Video 2026-07-02 at 4.12.45 PM.mp4'
-import reviewVideo02 from '../../../../CUSTOMERS/WhatsApp Video 2026-07-02 at 4.12.46 PM.mp4'
+import reviewImage01 from '../../../../CUSTOMERS/WhatsApp Image 2026-08-07 at 4.10.48 PM.jpeg'
+import reviewImage02 from '../../../../CUSTOMERS/WhatsApp Image 2026-08-07 at 4.10.49 PM.jpeg'
+import reviewImage03 from '../../../../CUSTOMERS/WhatsApp Image 2026-08-07 at 4.10.51 PM.jpeg'
+import reviewImage04 from '../../../../CUSTOMERS/WhatsApp Image 2026-08-08 at 3.02.40 PM.jpeg'
+import reviewImage05 from '../../../../CUSTOMERS/WhatsApp Image 2026-08-08 at 3.02.41 PM.jpeg'
+import reviewImage06 from '../../../../CUSTOMERS/WhatsApp Image 2026-08-08 at 3.02.42 PM (1).jpeg'
+import reviewImage07 from '../../../../CUSTOMERS/WhatsApp Image 2026-08-08 at 3.02.43 PM (3).jpeg'
+import reviewImage08 from '../../../../CUSTOMERS/WhatsApp Image 2026-08-08 at 3.02.44 PM (1).jpeg'
 
 type CustomerReview = {
   src: string
@@ -47,38 +39,29 @@ type StackStyle = CSSProperties & {
 }
 
 const customerReviews: CustomerReview[] = [
-  { src: reviewImage01, type: 'image', rating: 5, label: 'Customer review 01', aspectRatio: '1 / 1', widthRatio: 1 },
-  { src: reviewImage02, type: 'image', rating: 4.9, label: 'Customer review 02', aspectRatio: '1280 / 1017', widthRatio: 1.26 },
-  { src: reviewImage03, type: 'image', rating: 4.8, label: 'Customer review 03', aspectRatio: '1 / 1', widthRatio: 1 },
-  { src: reviewImage04, type: 'image', rating: 5, label: 'Customer review 04', aspectRatio: '1 / 1', widthRatio: 1 },
-  { src: reviewImage05, type: 'image', rating: 4.9, label: 'Customer review 05', aspectRatio: '1 / 1', widthRatio: 1 },
-  { src: reviewImage06, type: 'image', rating: 4.8, label: 'Customer review 06', aspectRatio: '1280 / 1133', widthRatio: 1.13 },
-  { src: reviewImage07, type: 'image', rating: 5, label: 'Customer review 07', aspectRatio: '1 / 1', widthRatio: 1 },
-  { src: reviewImage08, type: 'image', rating: 4.9, label: 'Customer review 08', aspectRatio: '1 / 1', widthRatio: 1 },
-  { src: reviewImage09, type: 'image', rating: 4.8, label: 'Customer review 09', aspectRatio: '1 / 1', widthRatio: 1 },
-  { src: reviewImage11, type: 'image', rating: 4.9, label: 'Customer review 11', aspectRatio: '736 / 920', widthRatio: 0.8 },
-  { src: reviewImageK1, type: 'image', rating: 5, label: 'Customer review K1', aspectRatio: '1 / 1', widthRatio: 1 },
-  { src: reviewImageK2, type: 'image', rating: 4.9, label: 'Customer review K2', aspectRatio: '1 / 1', widthRatio: 1 },
-  { src: reviewImageK3, type: 'image', rating: 5, label: 'Customer review K3', aspectRatio: '1 / 1', widthRatio: 1 },
-  { src: reviewImageK4, type: 'image', rating: 4.9, label: 'Customer review K4', aspectRatio: '1 / 1', widthRatio: 1 },
-  { src: reviewImageK5, type: 'image', rating: 5, label: 'Customer review K5', aspectRatio: '1 / 1', widthRatio: 1 },
-  { src: reviewVideo01, type: 'video', rating: 5, label: 'Customer review video 12', aspectRatio: '9 / 16', widthRatio: 0.68 },
-  { src: reviewVideo02, type: 'video', rating: 4.9, label: 'Customer review video 13', aspectRatio: '9 / 16', widthRatio: 0.68 },
+  { src: reviewImage01, type: 'image', rating: 5, label: 'Solar Generator customer review 01', aspectRatio: '3 / 4', widthRatio: 0.75 },
+  { src: reviewImage02, type: 'image', rating: 4.9, label: 'Solar Generator customer review 02', aspectRatio: '3 / 4', widthRatio: 0.75 },
+  { src: reviewImage03, type: 'image', rating: 4.8, label: 'Solar Generator customer review 03', aspectRatio: '139 / 152', widthRatio: 0.91 },
+  { src: reviewImage04, type: 'image', rating: 5, label: 'Solar Generator customer review 04', aspectRatio: '3 / 4', widthRatio: 0.75 },
+  { src: reviewImage05, type: 'image', rating: 4.9, label: 'Solar Generator customer review 05', aspectRatio: '3 / 4', widthRatio: 0.75 },
+  { src: reviewImage06, type: 'image', rating: 4.8, label: 'Solar Generator customer review 06', aspectRatio: '3 / 4', widthRatio: 0.75 },
+  { src: reviewImage07, type: 'image', rating: 5, label: 'Solar Generator customer review 07', aspectRatio: '3 / 4', widthRatio: 0.75 },
+  { src: reviewImage08, type: 'image', rating: 4.9, label: 'Solar Generator customer review 08', aspectRatio: '1 / 1', widthRatio: 1 },
 ]
 
 const floatingTestimonials: FloatingTestimonial[] = [
-  { name: 'Grace', location: 'Lagos', text: 'My edges look fuller and the oil no dey heavy at all. I love the shine ❤️', badge: 'Verified Customer' },
-  { name: 'Amaka', location: 'Enugu', text: 'Delivery was fast, packaging fine die. I use am for my natural hair and my scalp feels nourished 😊' },
-  { name: 'Ngozi', location: 'Abuja', text: 'I like that I can pay when it arrives. The smell is warm and premium, not harsh.', badge: 'Delivered Successfully' },
-  { name: 'Victor', location: 'Benin', text: 'Started using it on my beard too. Easy to apply and gives a clean healthy look 🔥' },
-  { name: 'Samuel', location: 'Kaduna', text: 'This one no be watery oil. It feels rich, and my hair routine is more consistent now 💯', badge: 'Repeat Customer' },
-  { name: 'Tega', location: 'Warri', text: 'As e land, I begin use am. My hair looks softer and neater. Nice one 👏🏽' },
-  { name: 'Jennifer', location: 'Bayelsa', text: 'The bottle is cute and the oil absorbs well. I have ordered again for my sister 😍', badge: 'Top Review' },
+  { name: 'Grace', location: 'Lagos', text: 'The Solar Generator keeps my lights and router on during outages. It is compact and easy to use ❤️', badge: 'Verified Customer' },
+  { name: 'Amaka', location: 'Enugu', text: 'Delivery was fast and the package was neat. The backup power has been very helpful 😊' },
+  { name: 'Ngozi', location: 'Abuja', text: 'I like that I can pay when it arrives. It is a simple backup solution for my essentials.', badge: 'Delivered Successfully' },
+  { name: 'Victor', location: 'Benin', text: 'I use it for my phone, lights, and small fan. Very practical for everyday power cuts 🔥' },
+  { name: 'Samuel', location: 'Kaduna', text: 'The unit feels solid and portable. My shop has a dependable backup now 💯', badge: 'Repeat Customer' },
+  { name: 'Tega', location: 'Warri', text: 'As e land, I charged it and set up my lights immediately. Nice one 👏🏽' },
+  { name: 'Jennifer', location: 'Bayelsa', text: 'The generator is compact and easy to carry. I have ordered another for my sister 😍', badge: 'Top Review' },
   { name: 'Peace', location: 'Jos', text: 'Customer support called before delivery. That alone gave me confidence 🥹' },
-  { name: 'Favour', location: 'Delta', text: 'I use it after shower for my scalp and front hair. Very easy daily routine.' },
+  { name: 'Favour', location: 'Delta', text: 'It has made my daily charging and evening lighting much easier.' },
   { name: 'Abdul', location: 'Kano', text: 'The payment on delivery made it simple. Product reached me in good condition.' },
-  { name: 'Mariam', location: 'Calabar', text: 'My hair looks healthier and has this nice glow. No drama, just steady use ❤️' },
-  { name: 'Esther', location: 'Makurdi', text: 'I bought for my mum and she likes the ginger feel. Packaging was clean too.' },
+  { name: 'Mariam', location: 'Calabar', text: 'My home essentials stay powered when there is no light. No drama, just steady backup ❤️' },
+  { name: 'Esther', location: 'Makurdi', text: 'I bought one for my mum and she likes how simple it is to use. Packaging was clean too.' },
 ]
 
 function RatingStars({ rating }: { rating: number }) {
@@ -188,6 +171,35 @@ function ReviewVideo({ review }: { review: CustomerReview }) {
 }
 
 export function CustomerReviewsSection() {
+  const reviewHeaderRef = useRef<HTMLElement | null>(null)
+  const reviewHeaderIsInView = useInView(reviewHeaderRef, { once: true, amount: 0.35 })
+  const [soldCount, setSoldCount] = useState(0)
+
+  useEffect(() => {
+    if (!reviewHeaderIsInView) {
+      return undefined
+    }
+
+    const target = 2100
+    const duration = 3200
+    let animationFrame = 0
+    let startTime: number | undefined
+
+    const animateCount = (timestamp: number) => {
+      startTime ??= timestamp
+      const progress = Math.min((timestamp - startTime) / duration, 1)
+      setSoldCount(Math.floor(target * progress))
+
+      if (progress < 1) {
+        animationFrame = window.requestAnimationFrame(animateCount)
+      }
+    }
+
+    animationFrame = window.requestAnimationFrame(animateCount)
+
+    return () => window.cancelAnimationFrame(animationFrame)
+  }, [reviewHeaderIsInView])
+
   return (
     <section
       className="review-stack-section"
@@ -197,10 +209,71 @@ export function CustomerReviewsSection() {
     >
       <FloatingTestimonials />
 
-      <div className="review-stack-header">
-        <p>CUSTOMER REVIEWS</p>
-        <h2 id="customer-reviews-heading">CUSTOMER REVIEWS</h2>
-      </div>
+      <motion.header
+        ref={reviewHeaderRef}
+        className="review-stack-header"
+        initial={{ opacity: 0, y: 34, scale: 0.96 }}
+        whileInView={{ opacity: 1, y: 0, scale: 1 }}
+        viewport={{ once: true, amount: 0.35 }}
+        transition={{ duration: 0.74, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <motion.div
+          className="review-header-emblem"
+          animate={{ rotate: [0, 8, -8, 0], scale: [1, 1.07, 1.07, 1] }}
+          transition={{ duration: 4.8, ease: 'easeInOut', repeat: Infinity, repeatDelay: 1.6 }}
+          aria-hidden="true"
+        >
+          ✦
+        </motion.div>
+        <motion.p
+          className="review-header-kicker"
+          initial={{ opacity: 0, y: 12 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.18, duration: 0.5 }}
+        >
+          Real owners. Real backup.
+        </motion.p>
+        <motion.h2
+          id="customer-reviews-heading"
+          initial={{ opacity: 0, y: 18 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.28, duration: 0.56, ease: [0.22, 1, 0.36, 1] }}
+        >
+          Loved when power disappears.
+        </motion.h2>
+        <motion.p
+          className="review-header-caption"
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.38, duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
+        >
+          See why Solar Generator customers are choosing quiet, fuel-free backup for the essentials that matter most.
+        </motion.p>
+        <motion.div
+          className="review-header-sales"
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.44, duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <strong>{soldCount.toLocaleString()}+</strong>
+          <span>Solar Generator units already sold</span>
+        </motion.div>
+        <motion.div
+          className="review-header-proof"
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.56, duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <span className="review-header-rating"><span aria-hidden="true">★★★★★</span> 4.9/5 rating</span>
+          <span className="review-header-chip"><b aria-hidden="true">✓</b> Verified customer stories</span>
+          <span className="review-header-chip"><b aria-hidden="true">✓</b> Pay on delivery</span>
+        </motion.div>
+      </motion.header>
 
       <div className="review-stack" style={{ '--card-count': customerReviews.length } as StackStyle}>
         {customerReviews.map((review, index) => (
@@ -221,7 +294,7 @@ export function CustomerReviewsSection() {
               <button
                 className="review-stack-buy-button"
                 type="button"
-                onClick={() => window.dispatchEvent(new CustomEvent('checkout:open'))}
+                onClick={() => window.dispatchEvent(new CustomEvent('checkout:open', { detail: { section: 'reviews' } }))}
                 aria-label="Buy now from customer review"
               >
                 Buy now

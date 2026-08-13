@@ -1,22 +1,20 @@
 import type { Product, ProductDisplayCard } from '@/features/landing/types/product'
 
-import heroImage1 from '../../../../hero/WhatsApp Image 2026-07-02 at 3.13.46 PM (2).jpeg'
-import heroImage2 from '../../../../hero/WhatsApp Image 2026-07-02 at 3.13.47 PM.jpeg'
-import heroImage3 from '../../../../hero/WhatsApp Image 2026-07-02 at 3.13.47 PM (1).jpeg'
-import heroImage4 from '../../../../hero/WhatsApp Image 2026-07-02 at 3.13.47 PM (2).jpeg'
-import heroImage5 from '../../../../hero/WhatsApp Image 2026-07-02 at 3.13.47 PM (3).jpeg'
-import heroImage6 from '../../../../hero/WhatsApp Image 2026-07-02 at 3.13.49 PM.jpeg'
-import heroImage7 from '../../../../hero/WhatsApp Image 2026-07-02 at 3.13.49 PM (1).jpeg'
-import heroImage8 from '../../../../hero/WhatsApp Image 2026-07-02 at 3.13.49 PM (2).jpeg'
+import heroImageOne from '../../../../hero/WhatsApp Image 2026-08-07 at 4.10.46 PM.jpeg'
+import heroImageTwo from '../../../../hero/WhatsApp Image 2026-08-07 at 4.10.49 PM (1).jpeg'
+import heroImageThree from '../../../../hero/WhatsApp Image 2026-08-07 at 4.10.50 PM (1).jpeg'
+import heroImageFour from '../../../../hero/WhatsApp Image 2026-08-07 at 4.10.50 PM.jpeg'
+import heroImageFive from '../../../../hero/WhatsApp Image 2026-08-08 at 3.02.41 PM (3).jpeg'
+import heroImageSix from '../../../../hero/WhatsApp Image 2026-08-08 at 3.02.43 PM (1).jpeg'
 
-const heroImages = [heroImage1, heroImage2, heroImage3, heroImage4, heroImage5, heroImage6, heroImage7, heroImage8]
+const heroImages = [heroImageOne, heroImageTwo, heroImageThree, heroImageFour, heroImageFive, heroImageSix]
 
 export const heroProduct: Omit<Product, 'imageSrc'> = {
-  id: 'ginger-oil-30ml',
-  brand: 'King of Ginger',
-  name: '7 Days Hair Growth Oil',
-  size: '30ml',
-  imageAlt: 'King of Ginger 7 Days Hair Growth Oil bottle and retail box',
+  id: 'solar-gen-dspp-150',
+  brand: 'Solar Generator',
+  name: 'Solar Generator',
+  size: 'Portable Solar Generator',
+  imageAlt: 'Solar Generator portable solar generator',
 }
 
 export const productCards: ProductDisplayCard[] = heroImages.map((imageSrc, index) => ({

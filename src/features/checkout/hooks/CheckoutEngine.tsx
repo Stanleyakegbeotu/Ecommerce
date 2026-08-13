@@ -1,22 +1,23 @@
 ﻿import { zodResolver } from '@hookform/resolvers/zod'
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { useForm, type UseFormReturn } from 'react-hook-form'
-import { z } from 'zod'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useForm } from 'react-hook-form'
 
 import { applyPackagePriceOverrides, getAdminSettings, loadAdminSettings, saveAdminOrder, trackAdminEvent, type AdminSettings } from '@/features/admin/adminData'
-import { trackFacebookPurchase } from '@/features/admin/facebookPixel'
+import { getCurrentProductContext } from '@/features/admin/trackingContext'
+import { getMetaAttribution, trackMetaInitiateCheckout, trackMetaLead } from '@/features/meta/metaTrackingService'
 import { productPackages, type ProductPackage } from '@/features/landing/data/packages'
-
-export const checkoutFormSchema = z.object({
-  fullName: z.string().trim().min(2, 'Enter your full name'),
-  phoneNumber: z.string().trim().min(7, 'Enter a valid phone number').max(18, 'Phone number is too long'),
-  whatsappNumber: z.string().trim().max(18, 'WhatsApp number is too long').optional(),
-  state: z.string().trim().min(1, 'Select your state'),
-  address: z.string().trim().min(8, 'Enter a detailed delivery address'),
-  deliveryNote: z.string().trim().max(180, 'Keep delivery note under 180 characters').optional(),
-})
-
-export type CheckoutFormValues = z.infer<typeof checkoutFormSchema>
+import { clearResumeProgress, readResumeProgress, saveResumeProgress } from '@/features/resume/sessionMemory'
+import { checkoutFormSchema, type CheckoutFormValues } from '@/features/checkout/hooks/checkoutSchema'
+import {
+  CheckoutEngineContext,
+  type AvailabilityTarget,
+  type CheckoutEngineValue,
+  type CheckoutOpenContext,
+  type InlineView,
+  type PackageSelectionOptions,
+  type PopupStep,
+  type SubmissionSurface,
+} from '@/features/checkout/hooks/checkoutEngineContext'
 
 export type OrderConfirmation = {
   id: string
@@ -27,33 +28,12 @@ export type OrderConfirmation = {
   status: 'Awaiting Confirmation'
 }
 
-type PopupStep = 'packages' | 'availability' | 'form' | 'success' | 'unavailable'
-type AvailabilityTarget = 'popup' | 'inline' | null
-type InlineView = 'form' | 'success'
-type SubmissionSurface = 'popup' | 'inline'
-
-type CheckoutEngineValue = {
-  availabilityTarget: AvailabilityTarget
-  closePopup: () => void
-  confirmAvailability: () => Promise<void>
-  declineAvailability: () => void
-  form: UseFormReturn<CheckoutFormValues>
-  inlineView: InlineView
-  lastOrder: OrderConfirmation | null
-  openPopup: (packageId?: string) => void
-  packageOptions: ProductPackage[]
-  popupOpen: boolean
-  popupStep: PopupStep
-  requestInlineAvailability: () => Promise<void>
-  resetOrder: () => void
-  selectedPackage: ProductPackage
-  selectedPackageId: string
-  selectPackage: (packageId: string, options?: { advancePopup?: boolean }) => void
-  setPopupStep: (step: PopupStep) => void
-  submitPopupOrder: () => Promise<void>
-}
-
 const defaultPackageId = productPackages[1]?.id ?? productPackages[0]?.id ?? ''
+
+function getResumePackageId() {
+  const savedPackageId = readResumeProgress()?.selectedPackageId
+  return savedPackageId && productPackages.some((productPackage) => productPackage.id === savedPackageId) ? savedPackageId : undefined
+}
 
 const defaultValues: CheckoutFormValues = {
   fullName: '',
@@ -64,7 +44,6 @@ const defaultValues: CheckoutFormValues = {
   deliveryNote: '',
 }
 
-const CheckoutEngineContext = createContext<CheckoutEngineValue | null>(null)
 
 function createOrderId() {
   const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '')
@@ -79,12 +58,15 @@ function getOrderDate() {
 
 export function CheckoutEngineProvider({ children }: { children: ReactNode }) {
   const [adminSettings, setAdminSettings] = useState<AdminSettings>(getAdminSettings())
-  const [selectedPackageId, setSelectedPackageId] = useState(defaultPackageId)
+  const [selectedPackageId, setSelectedPackageId] = useState(() => getResumePackageId() ?? defaultPackageId)
+  const [resumePackageId, setResumePackageId] = useState<string | undefined>(getResumePackageId)
   const [popupOpen, setPopupOpen] = useState(false)
   const [popupStep, setPopupStep] = useState<PopupStep>('packages')
   const [availabilityTarget, setAvailabilityTarget] = useState<AvailabilityTarget>(null)
   const [inlineView, setInlineView] = useState<InlineView>('form')
   const [lastOrder, setLastOrder] = useState<OrderConfirmation | null>(null)
+  const submittingOrderRef = useRef(false)
+  const confirmingAvailabilityRef = useRef(false)
 
   const form = useForm<CheckoutFormValues>({
     defaultValues,
@@ -101,18 +83,27 @@ export function CheckoutEngineProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     loadAdminSettings()
-      .then(setAdminSettings)
+      .then((settings) => {
+        setAdminSettings(settings)
+      })
       .catch(() => undefined)
-    trackAdminEvent('visitor').catch(() => undefined)
+    trackAdminEvent('visitor', { section: 'landing' }).catch(() => undefined)
   }, [])
 
   useEffect(() => {
     const handleOpenCheckout = (event: Event) => {
-      const packageId = event instanceof CustomEvent ? (event.detail?.packageId as string | undefined) : undefined
-      if (packageId && productPackages.some((productPackage) => productPackage.id === packageId)) {
-        setSelectedPackageId(packageId)
+      const detail = event instanceof CustomEvent ? (event.detail as CheckoutOpenContext & { packageId?: string } | undefined) : undefined
+      const packageId = detail?.packageId
+      const validPackageId = packageId && productPackages.some((productPackage) => productPackage.id === packageId) ? packageId : undefined
+      if (validPackageId) {
+        setSelectedPackageId(validPackageId)
+        setResumePackageId(validPackageId)
       }
-      trackAdminEvent('buy_click', packageId ? { packageId } : undefined).catch(() => undefined)
+      const packageToResume = validPackageId ?? selectedPackageId
+      setResumePackageId(packageToResume)
+      saveResumeProgress({ selectedPackageId: packageToResume, checkoutStarted: true, lastSection: 'order' })
+      trackMetaInitiateCheckout(packageToResume, Number(packageOptions.find((item) => item.id === packageToResume)?.promoPrice.replace(/[^\d]/g, '') ?? 0))
+      trackAdminEvent('buy_click', { packageId: validPackageId, section: detail?.section ?? 'landing', surface: 'popup' }).catch(() => undefined)
       setPopupStep('packages')
       setPopupOpen(true)
     }
@@ -120,7 +111,13 @@ export function CheckoutEngineProvider({ children }: { children: ReactNode }) {
     window.addEventListener('checkout:open', handleOpenCheckout)
 
     return () => window.removeEventListener('checkout:open', handleOpenCheckout)
-  }, [])
+  }, [packageOptions, selectedPackageId])
+
+  useEffect(() => {
+    if (!availabilityTarget) {
+      confirmingAvailabilityRef.current = false
+    }
+  }, [availabilityTarget])
 
   useEffect(() => {
     if (!popupOpen && !availabilityTarget) {
@@ -135,23 +132,33 @@ export function CheckoutEngineProvider({ children }: { children: ReactNode }) {
     }
   }, [availabilityTarget, popupOpen])
 
-  const openPopup = useCallback((packageId?: string) => {
+  const openPopup = useCallback((packageId?: string, context?: CheckoutOpenContext) => {
     if (packageId && productPackages.some((productPackage) => productPackage.id === packageId)) {
       setSelectedPackageId(packageId)
     }
-    trackAdminEvent('buy_click', packageId ? { packageId } : undefined).catch(() => undefined)
+    const packageToResume = packageId && productPackages.some((productPackage) => productPackage.id === packageId) ? packageId : selectedPackageId
+    setResumePackageId(packageToResume)
+    saveResumeProgress({ selectedPackageId: packageToResume, checkoutStarted: true, lastSection: 'order' })
+    trackMetaInitiateCheckout(packageToResume, Number(packageOptions.find((item) => item.id === packageToResume)?.promoPrice.replace(/[^\d]/g, '') ?? 0))
+    trackAdminEvent('buy_click', { packageId: packageToResume, section: context?.section ?? 'landing', surface: 'popup' }).catch(() => undefined)
     setPopupStep('packages')
     setPopupOpen(true)
-  }, [])
+  }, [packageOptions, selectedPackageId])
 
   const closePopup = useCallback(() => {
+    if (popupOpen && popupStep !== 'success') {
+      window.dispatchEvent(new CustomEvent('checkout:closed', { detail: { popupStep } }))
+    }
     setPopupOpen(false)
     setAvailabilityTarget((currentTarget) => (currentTarget === 'popup' ? null : currentTarget))
-  }, [])
+  }, [popupOpen, popupStep])
 
-  const selectPackage = useCallback((packageId: string, options?: { advancePopup?: boolean }) => {
+  const selectPackage = useCallback((packageId: string, options?: PackageSelectionOptions) => {
     setSelectedPackageId(packageId)
-    trackAdminEvent('package_selected', { packageId }).catch(() => undefined)
+    setResumePackageId(packageId)
+    saveResumeProgress({ selectedPackageId: packageId, checkoutStarted: true, lastSection: 'order' })
+    const surface = options?.surface ?? (options?.advancePopup ? 'popup' : 'inline')
+    trackAdminEvent('package_selected', { packageId, section: options?.section ?? 'order', surface }).catch(() => undefined)
     if (options?.advancePopup) {
       setPopupStep('availability')
       setAvailabilityTarget('popup')
@@ -160,6 +167,11 @@ export function CheckoutEngineProvider({ children }: { children: ReactNode }) {
 
   const submitOrder = useCallback(
     async (values: CheckoutFormValues, surface: SubmissionSurface) => {
+      if (submittingOrderRef.current) {
+        return
+      }
+
+      submittingOrderRef.current = true
       const order: OrderConfirmation = {
         id: createOrderId(),
         package: selectedPackage,
@@ -169,28 +181,22 @@ export function CheckoutEngineProvider({ children }: { children: ReactNode }) {
         status: 'Awaiting Confirmation',
       }
 
-      await saveAdminOrder({
+      try {
+        const persisted = await saveAdminOrder({
         id: order.id,
+        productId: getCurrentProductContext().productId,
         package: order.package,
         customer: order.customer,
         createdAt: new Date().toISOString(),
         estimatedDelivery: order.estimatedDelivery,
         status: 'New',
         source: surface,
-      })
-      trackAdminEvent('form_submitted', { packageId: selectedPackage.id, surface }).catch(() => undefined)
-      trackAdminEvent('purchase', { packageId: selectedPackage.id, value: String(parseInt(selectedPackage.promoPrice.replace(/[^\\d]/g, ''), 10) || 0) }).catch(() => undefined)
+        }, getMetaAttribution())
+        trackAdminEvent('form_submitted', { packageId: selectedPackage.id, section: 'order', surface }).catch(() => undefined)
 
-      const endpoint = adminSettings.formspreeEndpoint.trim()
-      if (endpoint) {
-        fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({ orderId: order.id, package: order.package.title, ...order.customer }),
-        }).catch(() => undefined)
-      }
-
-      trackFacebookPurchase(order)
+      trackMetaLead(persisted.leadEventId ?? null, selectedPackage.id, Number(selectedPackage.promoPrice.replace(/[^\d]/g, '')))
+      clearResumeProgress()
+      setResumePackageId(undefined)
       setLastOrder(order)
       if (surface === 'inline') {
         setInlineView('success')
@@ -199,21 +205,34 @@ export function CheckoutEngineProvider({ children }: { children: ReactNode }) {
         setPopupStep('success')
         setPopupOpen(true)
       }
+      } finally {
+        submittingOrderRef.current = false
+      }
     },
-    [adminSettings.formspreeEndpoint, selectedPackage],
+    [selectedPackage],
   )
 
-  const requestInlineAvailability = form.handleSubmit(async () => {
-    setAvailabilityTarget('inline')
-  })
+  const requestInlineAvailability = useCallback(async () => {
+    const isValid = await form.trigger()
+    if (isValid) setAvailabilityTarget('inline')
+  }, [form])
 
-  const submitPopupOrder = form.handleSubmit(async (values) => {
-    await submitOrder(values, 'popup')
-  })
+  const submitPopupOrder = useCallback(async () => {
+    const isValid = await form.trigger()
+    if (isValid) await submitOrder(form.getValues(), 'popup')
+  }, [form, submitOrder])
 
   const confirmAvailability = useCallback(async () => {
+    if (!availabilityTarget) {
+      return
+    }
+    if (confirmingAvailabilityRef.current) {
+      return
+    }
+    confirmingAvailabilityRef.current = true
+
     if (availabilityTarget === 'popup') {
-      trackAdminEvent('availability_confirmed', { surface: 'popup' }).catch(() => undefined)
+      trackAdminEvent('availability_confirmed', { section: 'order', surface: 'popup' }).catch(() => undefined)
       setAvailabilityTarget(null)
       setPopupStep('form')
       return
@@ -225,7 +244,7 @@ export function CheckoutEngineProvider({ children }: { children: ReactNode }) {
         setAvailabilityTarget(null)
         return
       }
-      trackAdminEvent('availability_confirmed', { surface: 'inline' }).catch(() => undefined)
+      trackAdminEvent('availability_confirmed', { section: 'order', surface: 'inline' }).catch(() => undefined)
       setAvailabilityTarget(null)
       await submitOrder(form.getValues(), 'inline')
     }
@@ -248,9 +267,11 @@ export function CheckoutEngineProvider({ children }: { children: ReactNode }) {
   const resetOrder = useCallback(() => {
     form.reset(defaultValues)
     setSelectedPackageId(defaultPackageId)
+    setResumePackageId(undefined)
     setLastOrder(null)
     setInlineView('form')
     setPopupStep('packages')
+    clearResumeProgress()
   }, [form])
 
   const value = useMemo<CheckoutEngineValue>(
@@ -266,6 +287,7 @@ export function CheckoutEngineProvider({ children }: { children: ReactNode }) {
       packageOptions,
       popupOpen,
       popupStep,
+      resumePackageId,
       requestInlineAvailability,
       resetOrder,
       selectedPackage,
@@ -286,6 +308,7 @@ export function CheckoutEngineProvider({ children }: { children: ReactNode }) {
       packageOptions,
       popupOpen,
       popupStep,
+      resumePackageId,
       requestInlineAvailability,
       resetOrder,
       selectedPackage,
@@ -297,15 +320,3 @@ export function CheckoutEngineProvider({ children }: { children: ReactNode }) {
 
   return <CheckoutEngineContext.Provider value={value}>{children}</CheckoutEngineContext.Provider>
 }
-
-export function useCheckoutEngine() {
-  const context = useContext(CheckoutEngineContext)
-
-  if (!context) {
-    throw new Error('useCheckoutEngine must be used within CheckoutEngineProvider')
-  }
-
-  return context
-}
-
-

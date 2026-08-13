@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { App } from './app/App'
+import { registerProductionServiceWorker } from './pwa/register'
 import './index.css'
 
 const rootElement = document.getElementById('root')
@@ -14,3 +15,5 @@ ReactDOM.createRoot(rootElement).render(
     <App />
   </React.StrictMode>,
 )
+
+registerProductionServiceWorker()

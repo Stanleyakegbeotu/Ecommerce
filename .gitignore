@@ -1,11 +1,18 @@
 node_modules/
 dist/
+# Environment files may contain deployment or function secrets. Keep only the
+# explicitly blank examples in version control.
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+supabase/.env
+supabase/.env.*
+!supabase/.env.example
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 .DS_Store
 tmp-gallery-reference/
+
+supabase/.temp/

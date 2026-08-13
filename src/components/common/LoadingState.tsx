@@ -10,9 +10,9 @@ function SkeletonLine({ className = '' }: { className?: string }) {
   return <SkeletonBlock className={`h-4 rounded-full ${className}`} />
 }
 
-export function LoadingState(_: LoadingStateProps) {
+export function LoadingState({ label = 'Loading page content' }: LoadingStateProps) {
   return (
-    <div className="min-h-screen bg-[#050505] text-stone-100" role="status" aria-live="polite" aria-label="Loading page content">
+    <div className="min-h-screen bg-[#050505] text-stone-100" role="status" aria-live="polite" aria-label={label}>
       <section className="mx-auto grid min-h-screen max-w-7xl gap-10 px-5 pb-16 pt-24 md:grid-cols-[0.95fr_1.05fr] md:items-center md:px-8 lg:px-10">
         <div className="order-2 grid gap-5 md:order-1">
           <SkeletonLine className="w-36 bg-white/10" />
