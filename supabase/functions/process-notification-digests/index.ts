@@ -41,7 +41,7 @@ Deno.serve(async (request) => {
     try {
       const range = bounds(job.digest_date)
       if (job.digest_type === 'orders') {
-        const { data, error } = await supabase.from('orders').select('id,customer,package_snapshot,estimated_delivery,status,products(name)').gte('created_at', range.start).lt('created_at', range.end).order('created_at')
+        const { data, error } = await supabase.from('orders').select('id,display_number,customer,package_snapshot,estimated_delivery,status,products(name)').gte('created_at', range.start).lt('created_at', range.end).order('created_at')
         if (error) throw new Error('order_digest_data_unavailable')
         if (!data?.length) { await supabase.rpc('skip_notification_digest', { p_job_id: job.id, p_reason: 'empty_digest' }); continue }
         const digest = orderDigest(job.digest_date, data.map((order) => ({ ...order, product_name: (order.products as { name?: string } | null)?.name ?? null })), platformName)

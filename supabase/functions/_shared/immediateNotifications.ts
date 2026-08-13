@@ -11,6 +11,10 @@ function lagosDate(value: string) {
   return `${part('year')}-${part('month')}-${part('day')}`
 }
 
+function orderReference(value: number | null | undefined) {
+  return value && value > 0 ? `#${String(value).padStart(3, '0')}` : 'New order'
+}
+
 export async function processPendingImmediateNotifications(supabase: ReturnType<typeof createClient>, limit = 4) {
   await supabase.rpc('recover_stale_notification_events')
   const { data: jobs } = await supabase
@@ -20,8 +24,11 @@ export async function processPendingImmediateNotifications(supabase: ReturnType<
     .lte('next_attempt_at', new Date().toISOString())
     .order('created_at')
     .limit(limit)
-  const { data: appSettings } = await supabase.from('app_settings').select('platform_name').eq('id', true).maybeSingle()
+  const { data: appSettings } = await supabase.from('app_settings').select('platform_name,platform_logo_path').eq('id', true).maybeSingle()
   const platformName = appSettings?.platform_name ?? 'Platform'
+  const platformLogoUrl = appSettings?.platform_logo_path
+    ? supabase.storage.from('platform-branding').getPublicUrl(appSettings.platform_logo_path).data.publicUrl
+    : null
   let processed = 0
 
   for (const job of (jobs ?? []) as EventJob[]) {
@@ -31,13 +38,13 @@ export async function processPendingImmediateNotifications(supabase: ReturnType<
       if (job.event_type === 'order' && job.order_id) {
         const { data: order, error } = await supabase
           .from('orders')
-          .select('id,customer,package_snapshot,estimated_delivery,status,created_at,products(name)')
+          .select('id,display_number,customer,package_snapshot,estimated_delivery,status,created_at,products(name)')
           .eq('id', job.order_id)
           .maybeSingle()
         if (error || !order) throw new Error('order_notification_data_unavailable')
         const date = lagosDate(order.created_at)
-        const digest = orderDigest(date, [{ ...order, product_name: (order.products as { name?: string } | null)?.name ?? null }], platformName)
-        const messageId = await sendAdministrativeEmail({ ...digest, subject: `New Order — ${formatDigestDate(date)}`, messageId: `<order-${order.id}-${job.id}@notification.local>` }, { platformName })
+        const digest = orderDigest(date, [{ ...order, product_name: (order.products as { name?: string } | null)?.name ?? null }], platformName, platformLogoUrl)
+        const messageId = await sendAdministrativeEmail({ ...digest, subject: `New order ${orderReference(order.display_number)} | ${formatDigestDate(date)}`, messageId: `<order-${order.id}-${job.id}@notification.local>` }, { platformName })
         await supabase.rpc('complete_notification_event', { p_job_id: job.id, p_provider_message_id: messageId })
       } else if (job.event_type === 'feedback' && job.feedback_id) {
         const { data: feedback, error } = await supabase
@@ -47,8 +54,8 @@ export async function processPendingImmediateNotifications(supabase: ReturnType<
           .maybeSingle()
         if (error || !feedback) throw new Error('feedback_notification_data_unavailable')
         const date = lagosDate(feedback.created_at)
-        const digest = feedbackDigest(date, [{ ...feedback, product_name: (feedback.products as { name?: string } | null)?.name ?? null }], platformName)
-        const messageId = await sendAdministrativeEmail({ ...digest, subject: `New Customer Feedback — ${formatDigestDate(date)}`, messageId: `<feedback-${feedback.id}-${job.id}@notification.local>` }, { platformName })
+        const digest = feedbackDigest(date, [{ ...feedback, product_name: (feedback.products as { name?: string } | null)?.name ?? null }], platformName, platformLogoUrl)
+        const messageId = await sendAdministrativeEmail({ ...digest, subject: `New customer feedback | ${formatDigestDate(date)}`, messageId: `<feedback-${feedback.id}-${job.id}@notification.local>` }, { platformName })
         await supabase.rpc('complete_notification_event', { p_job_id: job.id, p_provider_message_id: messageId })
       } else {
         throw new Error('notification_event_target_invalid')

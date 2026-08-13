@@ -16,6 +16,7 @@ export type OrderCancellationReason = 'customer_changed_mind' | 'unreachable' | 
 
 export type AdminOrder = {
   id: string
+  displayNumber: number
   productId: string
   customer: CheckoutFormValues
   package: ProductPackage
@@ -86,6 +87,7 @@ export const defaultSettings: AdminSettings = {
 
 type AdminOrderRow = {
   id: string
+  display_number: number
   product_id: string
   customer: CheckoutFormValues
   package_snapshot: ProductPackage
@@ -188,6 +190,7 @@ function normalizeSettings(settings?: SettingsPayload): AdminSettings {
 function mapOrder(row: AdminOrderRow): AdminOrder {
   return {
     id: row.id,
+    displayNumber: row.display_number,
     productId: row.product_id,
     customer: row.customer,
     package: row.package_snapshot,
@@ -243,7 +246,7 @@ export async function loadAdminDashboardData() {
 }
 
 /** Persists a customer order through a public, validated Edge Function. */
-export async function saveAdminOrder(order: AdminOrder, attribution?: TrafficAttribution) {
+export async function saveAdminOrder(order: Omit<AdminOrder, 'displayNumber'>, attribution?: TrafficAttribution) {
   const response = await invokeSupabaseFunction<{ orderId: string; leadEventId?: string | null }>('submit-order', {
     orderId: order.id,
     productId: order.productId,
@@ -347,6 +350,10 @@ export function filterByPeriod<T extends { createdAt: string }>(items: T[], peri
 
 export function parseMoney(value: string) {
   return Number(value.replace(/[^\d]/g, '')) || 0
+}
+
+export function formatOrderReference(order: Pick<AdminOrder, 'displayNumber'>) {
+  return `#${String(order.displayNumber).padStart(3, '0')}`
 }
 
 export function formatNairaInput(value: string) {

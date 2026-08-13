@@ -43,6 +43,7 @@ import {
   downloadTextFile,
   getAdminSettings,
   getTotalStartupCapital,
+  formatOrderReference,
   isSameDay,
   isSameMonth,
   loadAdminDashboardData,
@@ -260,8 +261,9 @@ function makeReport(period: ReportPeriod, orders: AdminOrder[], expenses: AdminE
     ['Cancelled Orders', String(cancelled)],
     ['Processing Order Value', String(sumOrderRevenue(scopedOrders, (order) => order.status === 'Processing'))],
     [],
-    ['Order ID', 'Customer', 'Phone', 'State', 'Package', 'Status', 'Amount', 'Date'],
+    ['Order Number', 'Order ID', 'Customer', 'Phone', 'State', 'Package', 'Status', 'Amount', 'Date'],
     ...scopedOrders.map((order) => [
+      formatOrderReference(order),
       order.id,
       order.customer.fullName,
       order.customer.phoneNumber,
@@ -418,13 +420,13 @@ function PerformanceChart({ orders }: { orders: AdminOrder[] }) {
 
 function CommandCenterHero({
   visitors,
-  newOrders,
+  totalOrders,
   expectedRevenue,
   deliveredRevenue,
   setActivePage,
 }: {
   visitors: number
-  newOrders: number
+  totalOrders: number
   expectedRevenue: number
   deliveredRevenue: number
   setActivePage: (page: AdminPage) => void
@@ -432,7 +434,7 @@ function CommandCenterHero({
   const { platformName } = usePlatformBranding()
   const signals = [
     { label: 'Today\'s visitors', value: String(visitors), icon: Users },
-    { label: 'New orders to review', value: String(newOrders), icon: Activity },
+    { label: 'All order requests', value: String(totalOrders), icon: Activity },
     { label: 'Expected revenue', value: formatMoney(expectedRevenue), icon: TrendingUp },
     { label: 'Delivered revenue', value: formatMoney(deliveredRevenue), icon: CircleDollarSign },
   ]
@@ -517,6 +519,7 @@ function RecentOrderActivity({ orders, setActivePage }: { orders: AdminOrder[]; 
             <span className="min-w-0 text-left">
               <span className="block truncate text-sm font-black text-slate-950">{order.customer.fullName}</span>
               <span className="mt-0.5 block truncate text-xs font-bold text-slate-500">{order.package.title}</span>
+              <span className="mt-0.5 block text-[0.68rem] font-black text-blue-700">{formatOrderReference(order)}</span>
             </span>
             <span className="text-right">
               <span className="block text-xs font-black text-slate-900">{formatMoney(orderRevenue(order))}</span>
@@ -688,7 +691,7 @@ function DashboardPage({ orders, expenses, events, setActivePage }: { orders: Ad
     <div className="grid gap-6">
       <CommandCenterHero
         visitors={eventCount('visitor')}
-        newOrders={orders.filter((order) => order.status === 'New').length}
+        totalOrders={orders.length}
         expectedRevenue={todayExpectedRevenue}
         deliveredRevenue={todayDeliveredRevenue}
         setActivePage={setActivePage}
@@ -706,6 +709,7 @@ function DashboardPage({ orders, expenses, events, setActivePage }: { orders: Ad
         <StatCard label="Today's Visitors" value={eventCount('visitor')} />
         <StatCard label="Buy Now Clicks" value={eventCount('buy_click')} tone="gold" />
         <StatCard label="Submitted Orders" value={todayOrders.length} tone="mint" />
+        <StatCard label="All Order Requests" value={orders.length} tone="gold" />
         <StatCard label="Not Yet Ready" value={events.filter((event) => event.type === 'availability_confirmed' && isSameDay(event.createdAt)).length - todayOrders.length} />
         <StatCard label="New Orders" value={orders.filter((order) => order.status === 'New').length} />
         <StatCard label="Processing Orders" value={orders.filter((order) => order.status === 'Processing').length} />
@@ -796,7 +800,7 @@ function OrderDetail({ order, history, onClose }: { order: AdminOrder; history: 
         <div>
           <p className="text-[0.68rem] font-black uppercase tracking-[0.18em] text-blue-700">Order detail</p>
           <h3 className="mt-2 text-2xl font-black text-slate-950">{order.customer.fullName}</h3>
-          <p className="mt-1 text-sm font-bold text-slate-500">{order.id}</p>
+          <p className="mt-1 text-sm font-bold text-slate-500">{formatOrderReference(order)} · {order.id}</p>
         </div>
         <button type="button" onClick={onClose} className="admin-detail-close grid size-10 place-items-center rounded-full border">
           <X className="size-5" />
@@ -875,7 +879,7 @@ function OrdersPage({ orders, history, initialStatus }: { orders: AdminOrder[]; 
 
   const filtered = orders.filter((order) => {
     const matchesDate = !date || order.createdAt.slice(0, 10) === date
-    const matchesSearch = `${order.customer.fullName} ${order.customer.phoneNumber}`.toLowerCase().includes(search.toLowerCase())
+    const matchesSearch = `${formatOrderReference(order)} ${order.customer.fullName} ${order.customer.phoneNumber}`.toLowerCase().includes(search.toLowerCase())
     const matchesState = !state || order.customer.state === state
     const matchesStatus = status === 'all' || order.status === status
     const matchesPackage = packageId === 'all' || order.package.id === packageId
@@ -1000,7 +1004,7 @@ function OrdersPage({ orders, history, initialStatus }: { orders: AdminOrder[]; 
             <span className="admin-order-avatar">{order.customer.fullName.trim().slice(0, 1).toUpperCase() || 'C'}</span>
             <span className="min-w-0">
               <span className="block truncate text-base font-black text-slate-950">{order.customer.fullName}</span>
-              <span className="mt-1 block text-sm font-bold text-slate-500">{order.customer.phoneNumber}</span>
+              <span className="mt-1 block text-sm font-bold text-slate-500">{formatOrderReference(order)} · {order.customer.phoneNumber}</span>
             </span>
             <span className="admin-order-location">{order.customer.state}</span>
             <span className="min-w-0">
@@ -1133,12 +1137,16 @@ function AnalyticsPage({ orders, events, expenses }: { orders: AdminOrder[]; eve
 }
 
 function FinancePage({ orders, expenses, settings }: { orders: AdminOrder[]; expenses: AdminExpense[]; settings: AdminSettings }) {
+  const [period, setPeriod] = useState<Period>('Daily')
+  const reportPeriod = periodToReportPeriod(period)
+  const scopedOrders = filterByReportPeriod(orders, reportPeriod)
+  const scopedExpenses = filterByReportPeriod(expenses, reportPeriod)
   const startupCapital = getTotalStartupCapital(settings)
-  const expectedRevenue = sumOrderRevenue(orders, isExpectedOrder)
-  const deliveredRevenue = sumOrderRevenue(orders, isDeliveredOrder)
-  const processingValue = sumOrderRevenue(orders, (order) => order.status === 'Processing')
-  const cancelledRevenue = sumOrderRevenue(orders, (order) => order.status === 'Cancelled')
-  const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0)
+  const expectedRevenue = sumOrderRevenue(scopedOrders, isExpectedOrder)
+  const deliveredRevenue = sumOrderRevenue(scopedOrders, isDeliveredOrder)
+  const processingValue = sumOrderRevenue(scopedOrders, (order) => order.status === 'Processing')
+  const cancelledRevenue = sumOrderRevenue(scopedOrders, (order) => order.status === 'Cancelled')
+  const totalExpenses = scopedExpenses.reduce((sum, expense) => sum + expense.amount, 0)
   const netProfit = deliveredRevenue - totalExpenses
   const cashFlow = deliveredRevenue - totalExpenses
   const roi = startupCapital ? Math.round((netProfit / startupCapital) * 100) : 0
@@ -1165,7 +1173,7 @@ function FinancePage({ orders, expenses, settings }: { orders: AdminOrder[]; exp
           <div>
             <p className="text-[0.66rem] font-black uppercase tracking-[0.19em] text-blue-700">Financial command</p>
             <h2 className="mt-3 font-serif text-4xl font-semibold leading-[0.98] tracking-[-0.045em] text-slate-950 sm:text-5xl">Know the health of every naira.</h2>
-            <p className="mt-4 max-w-xl text-sm font-semibold leading-7 text-slate-600">A clean view of what is earned, what is outstanding, and where the business is spending.</p>
+            <p className="mt-4 max-w-xl text-sm font-semibold leading-7 text-slate-600">A clean view of revenue, recorded expenses, and real COD profit for the selected period.</p>
           </div>
           <div className="admin-cash-position">
             <p>Current cash flow</p>
@@ -1175,6 +1183,14 @@ function FinancePage({ orders, expenses, settings }: { orders: AdminOrder[]; exp
         </div>
       </motion.section>
 
+      <div className="flex flex-wrap gap-2" aria-label="Finance reporting period">
+        {(['Daily', 'Monthly', 'Yearly'] as Period[]).map((item) => (
+          <button type="button" onClick={() => setPeriod(item)} className={`admin-small-button ${period === item ? 'bg-gold-500 text-white' : ''}`} key={item}>
+            {item}
+          </button>
+        ))}
+      </div>
+
       {cashFlow < 0 ? (
         <section className="admin-finance-warning rounded-[26px] border p-4 text-sm font-bold leading-6">
           Cash flow alert: expenses are higher than delivered revenue by {formatMoney(Math.abs(cashFlow))}.
@@ -1182,18 +1198,19 @@ function FinancePage({ orders, expenses, settings }: { orders: AdminOrder[]; exp
       ) : null}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Startup Capital" value={formatMoney(startupCapital)} />
-        <StatCard label="Expected Order Revenue" value={formatMoney(expectedRevenue)} />
-        <StatCard label="Delivered/Paid Revenue" value={formatMoney(deliveredRevenue)} tone="mint" />
+        <StatCard label={`${period} Order Requests`} value={scopedOrders.length} />
+        <StatCard label={`${period} Expected Revenue`} value={formatMoney(expectedRevenue)} />
+        <StatCard label={`${period} Delivered Revenue`} value={formatMoney(deliveredRevenue)} tone="mint" />
         <StatCard label="Processing Order Value" value={formatMoney(processingValue)} />
         <StatCard label="Cancelled Revenue" value={formatMoney(cancelledRevenue)} tone="danger" />
-        <StatCard label="Total Expenses" value={formatMoney(totalExpenses)} tone="danger" />
-        <StatCard label="Net Profit" value={formatMoney(netProfit)} tone={netProfit < 0 ? 'danger' : 'gold'} />
+        <StatCard label={`${period} Expenses`} value={formatMoney(totalExpenses)} tone="danger" />
+        <StatCard label={`${period} Net Profit`} value={formatMoney(netProfit)} tone={netProfit < 0 ? 'danger' : 'gold'} />
         <StatCard label="ROI" value={`${roi}%`} tone={roi < 0 ? 'danger' : 'gold'} />
         <StatCard label="Cash Flow" value={formatMoney(cashFlow)} tone={cashFlow < 0 ? 'danger' : 'mint'} />
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.12fr)_minmax(320px,0.88fr)]">
-        <PerformanceChart orders={orders} />
+        <PerformanceChart orders={scopedOrders} />
         <motion.section
           className="admin-living-panel rounded-[30px] border border-[#c9def2] bg-white p-5 shadow-[0_22px_48px_rgba(18,73,134,0.14),inset_0_1px_0_rgba(255,255,255,0.98)] sm:p-6"
           initial={{ opacity: 0, y: 20 }}

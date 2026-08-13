@@ -98,7 +98,7 @@ Deno.serve(async (request) => {
   try {
     if (body.action === 'load') {
       const [{ data: orders, error: ordersError }, { data: expenses, error: expensesError }, { data: events, error: eventsError }, { data: orderHistory, error: orderHistoryError }, settings] = await Promise.all([
-        supabase.from('orders').select('id,product_id,customer,package_snapshot,status,created_at,updated_at,paid_at,cancellation_reason,estimated_delivery,source').order('created_at', { ascending: false }),
+        supabase.from('orders').select('id,display_number,product_id,customer,package_snapshot,status,created_at,updated_at,paid_at,cancellation_reason,estimated_delivery,source').order('created_at', { ascending: false }),
         supabase.from('expenses').select('id,amount,purpose,order_id,created_at').order('created_at', { ascending: false }),
         supabase.from('analytics_events').select('id,type,metadata,created_at').order('created_at', { ascending: false }).limit(2000),
         supabase.from('order_status_history').select('id,order_id,from_status,to_status,actor_id,operational_note,cancellation_reason,created_at').order('created_at', { ascending: false }).limit(2000),
