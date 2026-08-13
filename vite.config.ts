@@ -27,7 +27,16 @@ export default defineConfig({
           { src: '/icons/cloudecom-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
-      workbox: { navigateFallback: '/index.html', runtimeCaching: [] },
+      // The launch video is a static application asset, not private admin data.
+      // Precache it so an installed PWA can present its launch moment offline.
+      workbox: {
+        navigateFallback: '/index.html',
+        runtimeCaching: [],
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+        additionalManifestEntries: [
+          { url: '/admin/cloudecom-admin-background.mp4', revision: null },
+        ],
+      },
     }),
   ],
   resolve: {

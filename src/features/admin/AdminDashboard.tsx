@@ -535,9 +535,15 @@ function RecentOrderActivity({ orders, setActivePage }: { orders: AdminOrder[]; 
 }
 
 function AdminLoginGate({ onSuccess, onClose }: { onSuccess: (identity: AdminIdentity) => void; onClose: () => void }) {
-  const { platformName } = usePlatformBranding()
-  const [email, setEmail] = useState('')
+  const { platformName, platformLogoUrl } = usePlatformBranding()
+  const rememberedEmailKey = 'cloudecom:admin:remembered-email'
+  const [email, setEmail] = useState(() => {
+    try { return window.localStorage.getItem(rememberedEmailKey) ?? '' } catch { return '' }
+  })
   const [password, setPassword] = useState('')
+  const [rememberEmail, setRememberEmail] = useState(() => {
+    try { return Boolean(window.localStorage.getItem(rememberedEmailKey)) } catch { return false }
+  })
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -547,6 +553,12 @@ function AdminLoginGate({ onSuccess, onClose }: { onSuccess: (identity: AdminIde
     try {
       const identity = await signInAdministrator(email, password)
       await verifyFeedbackAdminAccess()
+      try {
+        if (rememberEmail) window.localStorage.setItem(rememberedEmailKey, email.trim())
+        else window.localStorage.removeItem(rememberedEmailKey)
+      } catch {
+        // A convenience setting must never block secure Supabase authentication.
+      }
       setError('')
       onSuccess(identity)
     } catch {
@@ -559,31 +571,41 @@ function AdminLoginGate({ onSuccess, onClose }: { onSuccess: (identity: AdminIde
   }
 
   return (
-    <div className="fixed inset-0 z-[90] grid place-items-center bg-black/72 p-4 text-white backdrop-blur-2xl">
+    <div className="fixed inset-0 z-[90] grid place-items-center overflow-hidden bg-[#06172c] p-4 text-white">
+      <video className="absolute inset-0 size-full object-cover" autoPlay muted loop playsInline preload="metadata" aria-hidden="true">
+        <source src="/admin/cloudecom-admin-background.mp4" type="video/mp4" />
+      </video>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(19,160,194,0.28),transparent_36%),linear-gradient(140deg,rgba(2,12,28,0.68),rgba(2,12,28,0.82))] backdrop-blur-[2px]" aria-hidden="true" />
       <motion.div
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        className="w-full max-w-md rounded-[34px] border border-white/12 bg-ink-950/92 p-6 shadow-[0_30px_110px_rgba(0,0,0,0.72)]"
+        className="relative w-full max-w-md rounded-[34px] border border-white/45 bg-white/[0.16] p-5 shadow-[0_30px_110px_rgba(0,0,0,0.55)] backdrop-blur-2xl sm:p-7"
         initial={{ opacity: 0, y: 22, scale: 0.96 }}
       >
         <div className="flex items-start justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+          <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-2xl border border-white/55 bg-white/90 p-1.5 shadow-lg"><img src={platformLogoUrl ?? '/branding/cloudecom-logo.jpeg'} alt="" className="size-full object-contain" /></span>
           <div>
             <p className="text-[0.68rem] font-black uppercase tracking-[0.2em] text-gold-500">{platformName} · Private access</p>
             <h2 className="mt-3 font-serif text-4xl font-normal leading-none">Admin sign in</h2>
           </div>
-          <button type="button" onClick={onClose} className="grid size-10 place-items-center rounded-full border border-white/10 bg-white/[0.055]">
+          </div>
+          <button type="button" onClick={onClose} className="grid size-10 place-items-center rounded-full border border-white/35 bg-white/15 text-white transition hover:bg-white/25" aria-label="Close admin sign in">
             <X className="size-5" aria-hidden="true" />
           </button>
         </div>
-        <label className="mt-6 block text-xs font-black uppercase tracking-[0.12em] text-stone-300" htmlFor="admin-email">Email</label>
-        <input id="admin-email" value={email} onChange={(event) => setEmail(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') void submit() }} className="mt-2 h-12 w-full rounded-xl border border-white/10 bg-white/[0.055] px-4 text-base font-bold text-white outline-none focus:border-gold-500/70" autoComplete="email" inputMode="email" placeholder="admin@example.com" type="email" />
-        <label className="mt-4 block text-xs font-black uppercase tracking-[0.12em] text-stone-300" htmlFor="admin-password">Password</label>
-        <input id="admin-password" value={password} onChange={(event) => setPassword(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') void submit() }} className="mt-2 h-12 w-full rounded-xl border border-white/10 bg-white/[0.055] px-4 text-base font-bold text-white outline-none focus:border-gold-500/70" autoComplete="current-password" placeholder="Your password" type="password" />
-        {error ? <p className="mt-3 text-sm font-bold text-red-300">{error}</p> : null}
+        <p className="mt-6 text-sm font-semibold leading-6 text-slate-100">Sign in to view protected customers, orders, revenue, and operations.</p>
+        <label className="mt-6 block text-xs font-black uppercase tracking-[0.12em] text-white/90" htmlFor="admin-email">Email address</label>
+        <input id="admin-email" value={email} onChange={(event) => setEmail(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') void submit() }} className="mt-2 h-13 w-full rounded-2xl border border-white/45 bg-slate-950/35 px-4 text-base font-bold text-white placeholder:text-slate-300 outline-none transition focus:border-cyan-200 focus:bg-slate-950/50 focus:ring-4 focus:ring-cyan-100/20" autoComplete="email" inputMode="email" placeholder="admin@example.com" type="email" />
+        <label className="mt-4 block text-xs font-black uppercase tracking-[0.12em] text-white/90" htmlFor="admin-password">Password</label>
+        <input id="admin-password" value={password} onChange={(event) => setPassword(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') void submit() }} className="mt-2 h-13 w-full rounded-2xl border border-white/45 bg-slate-950/35 px-4 text-base font-bold text-white placeholder:text-slate-300 outline-none transition focus:border-cyan-200 focus:bg-slate-950/50 focus:ring-4 focus:ring-cyan-100/20" autoComplete="current-password" placeholder="Your password" type="password" />
+        <label className="mt-4 flex cursor-pointer items-center gap-3 text-sm font-bold text-white"><input type="checkbox" checked={rememberEmail} onChange={(event) => setRememberEmail(event.target.checked)} className="size-4 rounded border-white/50 bg-slate-950/40 accent-cyan-300" />Remember my email on this device</label>
+        <p className="mt-2 text-xs font-semibold leading-5 text-slate-200">Your password is never saved. Supabase authentication remains required every time.</p>
+        {error ? <p className="mt-4 rounded-xl border border-red-200/40 bg-red-950/35 px-3 py-2 text-sm font-bold text-red-100">{error}</p> : null}
         <button
           type="button"
           onClick={() => void submit()}
           disabled={submitting}
-          className="mt-5 min-h-13 w-full rounded-full bg-linear-to-br from-[#4d96ff] via-gold-500 to-gold-600 text-sm font-black uppercase tracking-[0.14em] text-white disabled:opacity-60"
+          className="mt-6 min-h-13 w-full rounded-2xl border border-cyan-100/50 bg-linear-to-r from-[#0e78bd] via-[#119eba] to-[#15bfa9] text-sm font-black uppercase tracking-[0.14em] text-white shadow-[0_14px_30px_rgba(0,95,145,0.38)] transition hover:brightness-110 disabled:opacity-60"
         >
           {submitting ? 'Signing in…' : 'Sign in'}
         </button>
