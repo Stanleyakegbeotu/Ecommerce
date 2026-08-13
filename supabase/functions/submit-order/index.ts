@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
 import { allowedRequestOrigin, json, preflight, rejectedRequestOrigin } from '../_shared/http.ts'
+import { processPendingImmediateNotifications } from '../_shared/immediateNotifications.ts'
 import { processPendingMetaDeliveries } from '../_shared/metaConversions.ts'
 import { solarGeneratorProduct } from '../_shared/products.ts'
 
@@ -205,5 +206,9 @@ Deno.serve(async (request) => {
   const leadEventId = Array.isArray(queuedLead) && typeof queuedLead[0]?.event_id === 'string' ? queuedLead[0].event_id : null
   const deliveryTask = processPendingMetaDeliveries(supabase, 4).catch(() => undefined)
   if (typeof EdgeRuntime !== 'undefined') EdgeRuntime.waitUntil(deliveryTask)
+  // The database insert and its trigger are canonical. Mail is a best-effort
+  // immediate notification and can never turn a saved order into a failed one.
+  const notificationTask = processPendingImmediateNotifications(supabase, 2).catch(() => undefined)
+  if (typeof EdgeRuntime !== 'undefined') EdgeRuntime.waitUntil(notificationTask)
   return json({ orderId, leadEventId }, error ? 200 : 201, origin)
 })

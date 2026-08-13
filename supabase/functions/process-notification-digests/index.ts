@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
 import { feedbackDigest, orderDigest } from '../_shared/notificationDigest.ts'
+import { processPendingImmediateNotifications } from '../_shared/immediateNotifications.ts'
 import { sendAdministrativeEmail } from '../_shared/smtp.ts'
 
 type DigestJob = { id: string; digest_type: 'orders' | 'feedback'; digest_date: string; attempt_count: number }
@@ -25,6 +26,9 @@ Deno.serve(async (request) => {
   const serviceRole = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
   if (!url || !serviceRole) return new Response(JSON.stringify({ error: 'Service unavailable.' }), { status: 503 })
   const supabase = createClient(url, serviceRole, { auth: { persistSession: false, autoRefreshToken: false } })
+  // The scheduler remains an authenticated server-only retry path. New records
+  // are attempted in their submission function before this fallback runs.
+  const immediateProcessed = await processPendingImmediateNotifications(supabase, 8)
   await supabase.rpc('recover_stale_notification_digests')
   await supabase.rpc('queue_due_notification_digests')
   const { data: jobs } = await supabase.from('notification_digest_jobs').select('id,digest_type,digest_date,attempt_count').in('status', ['queued', 'retrying']).lte('next_attempt_at', new Date().toISOString()).order('created_at').limit(8)
@@ -57,5 +61,5 @@ Deno.serve(async (request) => {
       await supabase.rpc('fail_notification_digest', { p_job_id: job.id, p_error_code: code })
     }
   }
-  return Response.json({ processed })
+  return Response.json({ processed: processed + immediateProcessed })
 })

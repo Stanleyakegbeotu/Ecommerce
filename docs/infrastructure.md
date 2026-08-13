@@ -55,12 +55,13 @@ git remote add origin NEW_GITHUB_REPOSITORY_URL
 git push -u origin main
 ```
 
-## Administrative email digests
+## Immediate administrative email notifications
 
 Orders and customer feedback are persisted first. The browser never sends mail
-and no SMTP setting is stored in `app_settings`. `notification_digest_jobs`
-creates one durable job per completed Lagos business date and digest type.
-`process-notification-digests` retries failed jobs with persisted backoff and
+and no SMTP setting is stored in `app_settings`. `notification_event_jobs`
+creates one durable job for each persisted order or feedback record. The
+submitting Edge Function attempts delivery immediately, while
+`process-notification-digests` is the private five-minute retry worker and
 only marks a job sent after the SMTP transport returns successfully.
 
 Set these secrets in Supabase Edge Function secrets only: `SMTP_HOST`,
@@ -70,9 +71,8 @@ Set these secrets in Supabase Edge Function secrets only: `SMTP_HOST`,
 `NOTIFICATION_RECIPIENT` aliases remain accepted only to allow secret
 rotation without a code change.
 
-The default digest time is 08:15 `Africa/Lagos`, for the previous completed
-day. Supabase Cron invokes `process-notification-digests` every 15 minutes for
-the due daily delivery and bounded retries. The endpoint URL and scheduler
+Supabase Cron invokes `process-notification-digests` every five minutes for
+bounded retries. The endpoint URL and scheduler
 header secret are held only in Supabase Vault as
 `notification_digest_processor_url` and
 `notification_digest_scheduler_secret`; neither is browser-accessible.
@@ -89,8 +89,8 @@ release, while in-app branding changes remain live through Platform Settings.
 For Gmail use `SMTP_HOST=smtp.gmail.com` with either port `465` and
 `SMTP_SECURE=true`, or port `587` and `SMTP_SECURE=false`. Use a Google App
 Password for `SMTP_PASSWORD`, never the normal account password. The trusted
-scheduler should invoke the digest processor at the selected 15-minute Lagos
-time and may invoke it every 15 minutes afterward for persisted retries.
+scheduler invokes the notification processor every five minutes for persisted
+retries. `Africa/Lagos` is retained for timestamp and date formatting.
 
 ## Meta conversion tracking (COD)
 

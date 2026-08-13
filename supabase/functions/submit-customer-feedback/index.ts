@@ -2,6 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 
 import { customerFeedbackTextMaxLength } from '../_shared/customerFeedback.ts'
 import { allowedRequestOrigin, rejectedRequestOrigin } from '../_shared/http.ts'
+import { processPendingImmediateNotifications } from '../_shared/immediateNotifications.ts'
 import { solarGeneratorProduct } from '../_shared/products.ts'
 
 const corsHeaders = {
@@ -204,6 +205,11 @@ Deno.serve(async (request) => {
     }
     return response({ error: 'We could not save your feedback. Please try again.' }, 500, allowedOrigin)
   }
+
+  // New feedback is persisted first. A durable job is created by the database
+  // trigger, then attempted immediately without coupling delivery to the visitor.
+  const notificationTask = processPendingImmediateNotifications(supabase, 2).catch(() => undefined)
+  if (typeof EdgeRuntime !== 'undefined') EdgeRuntime.waitUntil(notificationTask)
 
   return response({ feedbackId: data.id }, 201, allowedOrigin)
 })
