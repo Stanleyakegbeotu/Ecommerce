@@ -2,6 +2,15 @@
   command = "npm run build"
   publish = "dist"
 
+# The Cloudecom Netlify hostname is the management application entry point.
+# Product pages remain public under /products/:slug and continue to use the
+# SPA fallback below.
+[[redirects]]
+  from = "/"
+  to = "/admin"
+  status = 302
+  force = true
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
