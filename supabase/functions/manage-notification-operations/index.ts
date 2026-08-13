@@ -1,5 +1,6 @@
 import { authorizeActiveAdministrator } from '../_shared/adminAuth.ts'
 import { allowedRequestOrigin, json, preflight, rejectedRequestOrigin } from '../_shared/http.ts'
+import { processPendingImmediateNotifications } from '../_shared/immediateNotifications.ts'
 import { smtpConfigurationStatus } from '../_shared/smtp.ts'
 
 function isJobId(value: unknown): value is string { return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value) }
@@ -28,6 +29,15 @@ Deno.serve(async (request) => {
       const { data, error } = await supabase.rpc('retry_failed_notification_event', { p_job_id: body.jobId })
       if (error) throw error
       if (!data) return json({ error: 'Only a terminal failed notification can be retried.' }, 409, origin)
+      return json({ ok: true }, 200, origin)
+    }
+    if (body.action === 'resend_event') {
+      if (administrator.role !== 'owner') return json({ error: 'Owner access is required.' }, 403, origin)
+      if (!isJobId(body.jobId)) return json({ error: 'Invalid notification job.' }, 400, origin)
+      const { data, error } = await supabase.rpc('requeue_sent_notification_event', { p_job_id: body.jobId })
+      if (error) throw error
+      if (!data) return json({ error: 'Only a delivered notification with remaining attempts can be resent.' }, 409, origin)
+      await processPendingImmediateNotifications(supabase, 1)
       return json({ ok: true }, 200, origin)
     }
     return json({ error: 'Unsupported action.' }, 400, origin)
